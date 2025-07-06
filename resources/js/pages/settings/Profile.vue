@@ -14,6 +14,7 @@ import { type BreadcrumbItem, type User } from '@/types';
 interface Props {
     mustVerifyEmail: boolean;
     status?: string;
+    cod: string;
 }
 
 defineProps<Props>();
@@ -27,6 +28,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
 const page = usePage();
 const user = page.props.auth.user as User;
+const codUser = page.props.cod as string;
 
 const form = useForm({
     name: user.name,
@@ -100,6 +102,10 @@ const submit = () => {
                         </Transition>
                     </div>
                 </form>
+                <div class="grid gap-2">
+                        <Label for="cod">Cod User</Label>
+                        <Input id="cod" class="mt-1 block w-full" disabled v-model="codUser" autocomplete="cod" />
+                    </div>
             </div>
 
             <DeleteUser />

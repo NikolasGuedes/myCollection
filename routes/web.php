@@ -11,6 +11,7 @@ Route::get('/comments', [mainController::class, 'comments'])->name('comments');/
 Route::prefix('collection')->middleware('auth')->group(function () {
     Route::get('/', [CollectionController::class, 'index'])->middleware('auth')->name('collection');
     Route::post('/', [CollectionController::class, 'store'])->name('collection.store');
+    Route::delete('/{id}', [CollectionController::class, 'destroy'])->name('collection.destroy');
 });
 
 

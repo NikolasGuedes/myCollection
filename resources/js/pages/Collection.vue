@@ -4,12 +4,22 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/vue3';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Search, Plus, Heart } from 'lucide-vue-next';
+import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
+import { Search, Plus, Heart, Edit } from 'lucide-vue-next';
 import { ref } from 'vue';
 import Toast from 'primevue/toast';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
 
 import { useToast } from 'primevue/usetoast';
+import Card from '@/components/ui/card/Card.vue';
 
 const toast = useToast();
 
@@ -21,9 +31,15 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 defineProps({
-    consoles:{
-        type: Array as () => Array<{ id: number; name: string; picture: string; status: string }>,
-        required: true, 
+    consoles: {
+        type: Array as () => Array<{
+            id: number;
+            name: string;
+            picture: string;
+            picture_url: string | null;
+            status: string
+        }>,
+        required: true,
     }
 })
 
@@ -40,12 +56,15 @@ const consoleForm = useForm({
     picture: null as File | null,
 });
 
+const imagePreview = ref<string | null>(null);
+
 const saveConsole = () => {
     consoleForm.post(route('collection.store'), {
         preserveState: true,
         onSuccess: () => {
             isDialogOpen.value = false;
             consoleForm.reset();
+            imagePreview.value = null;
             toast.add({
                 severity: 'success',
                 detail: 'Console add successfully.',
@@ -67,6 +86,17 @@ const handleFileChange = (event: Event) => {
     const target = event.target as HTMLInputElement;
     const file = target.files?.[0] || null;
     consoleForm.picture = file;
+
+    // Create preview URL
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.value = e.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+    } else {
+        imagePreview.value = null;
+    }
 };
 
 </script>
@@ -96,51 +126,136 @@ const handleFileChange = (event: Event) => {
         </div>
         <div class="flex h-fit items-start justify-between flex-row rounded-xl p-4 self-end">
             <div class="flex flex-row gap-2 items-center justify-center">
-                <Button class="cursor-pointer text-white bg-[var(--secondary)]">
+                <Button class="cursor-pointer  bg-[var(--secondary)] text-white font-bold">
                     {{ likes }}
-                    <Heart class="h-5 w-5" />
+                    <Heart class="h-5 w-5 text-[var(--green_site)]" />
                 </Button>
             </div>
 
         </div>
 
-        <!-- Empty state: when consoles is empty -->
-        <div v-if="consoles.length === 0" class="flex h-full items-center justify-start flex-1 flex-col gap-4 rounded-xl p-4 pt-10 overflow-x-auto">
-            No registered console
+        <div v-if="consoles.length === 0"
+            class="flex h-full items-center justify-start flex-1 flex-col gap-4 rounded-xl pt-10 overflow-x-auto">
+            <p class="font-bold text-lg">No registered console yet.</p>
         </div>
-        <!-- Content state: when consoles has items -->
-        <div v-else class="flex h-full items-center justify-start flex-1 flex-col gap-4 rounded-xl p-4 pt-10 overflow-x-auto">
-            <div v-for="console in consoles" :key="console.id" class="w-full p-4 border rounded-lg">
-                <h3 class="font-bold">{{ console.name }}</h3>
-                <p>Status: {{ console.status }}</p>
-                <img v-if="console.picture" :src="console.picture" :alt="console.name" class="w-16 h-16 object-cover mt-2" />
-            </div>
+
+        <div v-else
+            class="flex h-full items-start justify-evenly flex-1 flex-row gap-10 rounded-xl p-5 pt-3 flex-wrap overflow-x-auto">
+            <Card v-for="console in consoles" :key="console.id"
+                class="bg-[var(--sidebar-background)] backdrop-blur-sm rounded-lg  overflow-hidden p-5 w-96">
+                <div class="space-y-4">
+                    <div class="flex justify-end">
+                        <Button variant="ghost" size="icon"
+                            class="h-8 w-8 p-0 bg-[var(--secondary)] text-[var(--green_site)] hover:text-[var(--green_site)] cursor-pointer">
+                            <Edit />
+                        </Button>
+                    </div>
+                    <div
+                        class="relative bg-[var(--secondary)] rounded-lg aspect-[2] flex items-center justify-center overflow-hidden">
+                        <img v-if="console.picture_url" :src="console.picture_url" :alt="console.name"
+                            class="w-full h-full object-cover bg-[var(--secondary)]/5" />
+                        <div v-if="console.picture_url" class="absolute inset-0 bg-black opacity-40"></div>
+                        <div v-else class="text-white text-sm">No Image</div>
+                    </div>
+
+                    <h3 class="text-white font-semibold text-center text-sm tracking-wide uppercase">
+                        {{ console.name }}
+                    </h3>
+
+                    <div class="flex items-center justify-between gap-x-10">
+                        <span class="text-slate-300 text-sm font-medium w-28">ESTATE:</span>
+                        <span
+                            class="bg-[var(--secondary)] text-white text-xs px-3 py-1 rounded-full text-center w-80 uppercase">
+                            {{ console.status }}
+                        </span>
+                    </div>
+
+
+                    <div class="flex items-center justify-between gap-x-10">
+                        <span class="text-slate-300 text-sm font-medium w-28">GAMES:</span>
+                        <span
+                            class="bg-[var(--secondary)] text-white text-xs px-3 py-1 rounded-full text-center w-80 uppercase">
+                            0
+                        </span>
+                    </div>
+
+
+                    <div class="flex items-center justify-between gap-x-10">
+                        <span class="text-slate-300 text-sm font-medium w-28">GADGETS:</span>
+                        <span
+                            class="bg-[var(--secondary)] text-white text-xs px-3 py-1 rounded-full text-center w-80 uppercase">
+                            0
+                        </span>
+                    </div>
+
+
+                    <Button class="w-full bg-[var(--primary)] text-white font-medium text-sm py-2 mt-4 cursor-pointer">
+                        <p class="font-bold">ADD ITEM</p>
+                    </Button>
+                </div>
+            </Card>
         </div>
 
         <Dialog v-model:open="isDialogOpen">
-            <DialogContent>
-                <form @submit.prevent="saveConsole">
-                    <DialogHeader>
-                        <DialogTitle>Add Console</DialogTitle>
+            <DialogContent class="bg-[var(--sidebar-background)] border-none min-w-3xl max-sm:min-w-fit mx-auto">
+                <form @submit.prevent="saveConsole" class="space-y-6">
+
+                    <DialogHeader class="pb-4">
+                        <DialogTitle class="text-white text-lg font-semibold">New Console</DialogTitle>
                     </DialogHeader>
-                    <div class="py-4">
-                        <Input type="file" accept="image/*" @change="handleFileChange" class="mb-4" />
-                        <div v-if="consoleForm.errors.picture" class="text-red-500 text-sm mb-2">
-                            {{ consoleForm.errors.picture }}
+                    <div class="space-y-6">
+                        <!-- Image Upload Area -->
+                        <div class="flex flex-col items-center space-y-4 mt-6">
+                            <div
+                                class="relative bg-[var(--secondary)] rounded-lg aspect-[4] w-full flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-500">
+                                <input type="file" accept="image/*" @change="handleFileChange"
+                                    class="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                <div v-if="imagePreview" class="w-full h-full">
+                                    <img :src="imagePreview" alt="Preview" class="w-full h-full object-cover bg-black opacity-50" />
+                                </div>
+                                <div v-else class="text-center text-gray-400">
+                                    <p class="text-sm">press to add</p>
+                                    <p class="text-sm">image</p>
+                                </div>
+                            </div>
+                            <div v-if="consoleForm.errors.picture" class="text-red-500 text-sm">
+                                {{ consoleForm.errors.picture }}
+                            </div>
                         </div>
+
                         <Input type="text" v-model="consoleForm.name" placeholder="Console Name" class="mb-4" />
                         <div v-if="consoleForm.errors.name" class="text-red-500 text-sm mb-2">
                             {{ consoleForm.errors.name }}
                         </div>
-                        <Input type="text" v-model="consoleForm.status" placeholder="Console Status" class="mb-4" />
+                        <Select v-model="consoleForm.status">
+                            <SelectTrigger class="w-full">
+                                <SelectValue placeholder="Console Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectLabel>Choose a state</SelectLabel>
+                                    <SelectItem value="new">
+                                        NEW
+                                    </SelectItem>
+                                    <SelectItem value="used">
+                                        USED
+                                    </SelectItem>
+                                    <SelectItem value="broken">
+                                        BROKEN
+                                    </SelectItem>
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
                         <div v-if="consoleForm.errors.status" class="text-red-500 text-sm mb-2">
                             {{ consoleForm.errors.status }}
                         </div>
                     </div>
-                    <DialogFooter>
 
-                        <Button type="submit" class="text-white cursor-pointer" :disabled="consoleForm.processing">
-                            {{ consoleForm.processing ? 'Saving...' : 'Save' }}
+                    <DialogFooter class="pt-3">
+                        <Button type="submit"
+                            class="w-full bg-[var(--primary)] text-white font-semibold py-3 rounded-lg cursor-pointer hover:bg-[var(--primary)]/90 transition-colors"
+                            :disabled="consoleForm.processing">
+                            {{ consoleForm.processing ? 'SAVING...' : 'ADD NEW CONSOLE' }}
                         </Button>
                     </DialogFooter>
                 </form>

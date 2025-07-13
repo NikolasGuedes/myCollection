@@ -4,9 +4,9 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/vue3';
 import Input from '@/components/ui/input/Input.vue';
 import Button from '@/components/ui/button/Button.vue';
-import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Search, Plus, Heart, Edit } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import Toast from 'primevue/toast';
 import {
     Select,
@@ -30,14 +30,21 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-defineProps({
+const props = defineProps({
     consoles: {
+        type: Array as () => Array<{
+            id: number;
+            name: string;
+            status: string
+        }>,
+        required: true,
+    },
+    allConsoles: {
         type: Array as () => Array<{
             id: number;
             name: string;
             picture: string;
             picture_url: string | null;
-            status: string
         }>,
         required: true,
     }
@@ -48,15 +55,31 @@ const isDialogOpen = ref(false);
 
 const openDialog = () => {
     isDialogOpen.value = true;
+    // Reset do formulário e preview quando abrir o dialog
+    consoleForm.reset();
+    imagePreview.value = null;
 };
 
 const consoleForm = useForm({
     name: '',
     status: '',
-    picture: null as File | null,
 });
 
 const imagePreview = ref<string | null>(null);
+
+watch(() => consoleForm.name, (newName) => {
+
+    if (newName) {
+        const selectedConsole = props.allConsoles.find(c => c.name === newName);
+
+        if (selectedConsole) {
+            const imageUrl = selectedConsole.picture_url || `/${selectedConsole.picture}`;
+            imagePreview.value = imageUrl;
+        }
+    } else {
+        imagePreview.value = null;
+    }
+});
 
 const saveConsole = () => {
     consoleForm.post(route('collection.store'), {
@@ -82,22 +105,14 @@ const saveConsole = () => {
     });
 };
 
-const handleFileChange = (event: Event) => {
-    const target = event.target as HTMLInputElement;
-    const file = target.files?.[0] || null;
-    consoleForm.picture = file;
-
-    // Create preview URL
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            imagePreview.value = e.target?.result as string;
-        };
-        reader.readAsDataURL(file);
-    } else {
-        imagePreview.value = null;
+const getConsoleImage = (consoleName: string): string | null => {
+    const consoleData = props.allConsoles.find(c => c.name === consoleName);
+    if (consoleData) {
+        return consoleData.picture_url || `/${consoleData.picture}`;
     }
+    return null;
 };
+
 
 </script>
 
@@ -152,9 +167,9 @@ const handleFileChange = (event: Event) => {
                     </div>
                     <div
                         class="relative bg-[var(--secondary)] rounded-lg aspect-[2] flex items-center justify-center overflow-hidden">
-                        <img v-if="console.picture_url" :src="console.picture_url" :alt="console.name"
+                        <img v-if="getConsoleImage(console.name)" :src="getConsoleImage(console.name)!" :alt="console.name"
                             class="w-full h-full object-cover bg-[var(--secondary)]/5" />
-                        <div v-if="console.picture_url" class="absolute inset-0 bg-black opacity-40"></div>
+                        <div v-if="getConsoleImage(console.name)" class="absolute inset-0 bg-black opacity-40"></div>
                         <div v-else class="text-white text-sm">No Image</div>
                     </div>
 
@@ -204,50 +219,64 @@ const handleFileChange = (event: Event) => {
                         <DialogTitle class="text-white text-lg font-semibold">New Console</DialogTitle>
                     </DialogHeader>
                     <div class="space-y-6">
-                        <!-- Image Upload Area -->
+                        <!-- Image Preview Area -->
                         <div class="flex flex-col items-center space-y-4 mt-6">
                             <div
-                                class="relative bg-[var(--secondary)] rounded-lg aspect-[4] w-full flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-500">
-                                <input type="file" accept="image/*" @change="handleFileChange"
-                                    class="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                                <div v-if="imagePreview" class="w-full h-full">
-                                    <img :src="imagePreview" alt="Preview" class="w-full h-full object-cover bg-black opacity-50" />
+                                class="relative bg-[var(--secondary)] rounded-lg aspect-[2] w-full max-w-md flex items-center justify-center overflow-hidden">
+                                <img  v-if="imagePreview" :src="imagePreview" :alt="consoleForm.name"
+                                    class="w-full h-full object-cover bg-[var(--secondary)]/5" />
+                                <div v-if="imagePreview" class="absolute inset-0 bg-black opacity-40"></div>
+                                <div v-else class="text-white text-sm">
+                                    {{ consoleForm.name ? 'Loading preview...' : 'Select a console to see preview' }}
                                 </div>
-                                <div v-else class="text-center text-gray-400">
-                                    <p class="text-sm">press to add</p>
-                                    <p class="text-sm">image</p>
-                                </div>
-                            </div>
-                            <div v-if="consoleForm.errors.picture" class="text-red-500 text-sm">
-                                {{ consoleForm.errors.picture }}
                             </div>
                         </div>
 
-                        <Input type="text" v-model="consoleForm.name" placeholder="Console Name" class="mb-4" />
-                        <div v-if="consoleForm.errors.name" class="text-red-500 text-sm mb-2">
-                            {{ consoleForm.errors.name }}
+                        <!-- Select Console -->
+                        <div>
+                            <Select v-model="consoleForm.name">
+                                <SelectTrigger class="w-full">
+                                    <SelectValue placeholder="Select Console" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Choose a console</SelectLabel>
+                                        <SelectItem v-for="console in allConsoles" :key="console.id"
+                                            :value="console.name">
+                                            {{ console.name }}
+                                        </SelectItem>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                            <div v-if="consoleForm.errors.name" class="text-red-500 text-sm mt-2">
+                                {{ consoleForm.errors.name }}
+                            </div>
                         </div>
-                        <Select v-model="consoleForm.status">
-                            <SelectTrigger class="w-full">
-                                <SelectValue placeholder="Console Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectLabel>Choose a state</SelectLabel>
-                                    <SelectItem value="new">
-                                        NEW
-                                    </SelectItem>
-                                    <SelectItem value="used">
-                                        USED
-                                    </SelectItem>
-                                    <SelectItem value="broken">
-                                        BROKEN
-                                    </SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                        <div v-if="consoleForm.errors.status" class="text-red-500 text-sm mb-2">
-                            {{ consoleForm.errors.status }}
+
+                        <!-- Select Console Status -->
+                        <div>
+                            <Select v-model="consoleForm.status">
+                                <SelectTrigger class="w-full">
+                                    <SelectValue placeholder="Console Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Choose a state</SelectLabel>
+                                        <SelectItem value="new">
+                                            NEW
+                                        </SelectItem>
+                                        <SelectItem value="used">
+                                            USED
+                                        </SelectItem>
+                                        <SelectItem value="broken">
+                                            BROKEN
+                                        </SelectItem>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                            <div v-if="consoleForm.errors.status" class="text-red-500 text-sm mt-2">
+                                {{ consoleForm.errors.status }}
+                            </div>
                         </div>
                     </div>
 

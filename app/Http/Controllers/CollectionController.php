@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Console;
+use App\Models\AllConsole;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -22,8 +23,24 @@ class CollectionController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $allConsoles = AllConsole::all();
+
         return Inertia::render('Collection', [
-            'consoles' => $consoles
+            'consoles' => $consoles->map(function ($console) {
+                return [
+                    'id' => $console->id,
+                    'name' => $console->name,
+                    'status' => $console->status,
+                ];
+            }),
+            'allConsoles' => $allConsoles->map(function ($console) {
+                return [
+                    'id' => $console->id,
+                    'name' => $console->name,
+                    'picture' => $console->picture,
+                    'picture_url' => $console->picture_url,
+                ];
+            }),
         ]);
     }
 
@@ -32,21 +49,20 @@ class CollectionController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'status' => 'required|string|max:255',
-            'picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
         try {
             DB::transaction(function () use ($request) {
-                $pictureUrl = null;
+                // Validar se o console existe na tabela all_consoles
+                $allConsole = AllConsole::where('name', $request['name'])->first();
                 
-                if ($request->hasFile('picture')) {
-                    $pictureUrl = $request->file('picture')->store('consoles', 'public');
+                if (!$allConsole) {
+                    throw new \Exception('Console não encontrado na base de dados de consoles disponíveis.');
                 }
 
                 Console::create([
                     'name' => $request['name'],
                     'status' => $request['status'],
-                    'picture' => $pictureUrl,
                     'user_id' => Auth::user()->id,
                 ]);
             });
@@ -55,7 +71,7 @@ class CollectionController extends Controller
             Log::error('Failed to create console: ' . $th->getMessage(), [
                 'trace' => $th->getTraceAsString(),
                 'user_id' => Auth::id(),
-                'request_data' => $request->except('picture') // Excluir o arquivo da imagem dos logs
+                'request_data' => $request->all()
             ]);
 
             return redirect()->back()->withErrors([
@@ -71,11 +87,6 @@ class CollectionController extends Controller
                 ->where('user_id', Auth::id())
                 ->firstOrFail();
 
-            // Delete the image file if it exists
-            if ($console->picture) {
-                Storage::disk('public')->delete($console->picture);
-            }
-
             $console->delete();
 
             return redirect()->route('collection')->with('success', 'Console deletado com sucesso!');
@@ -87,11 +98,9 @@ class CollectionController extends Controller
                 'console_id' => $id
             ]);
 
-             return Inertia::render('Collection', [
-            'consoles' => Console::where('user_id', Auth::id())
-            ->orderBy('created_at', 'desc')
-            ->get()
-        ]);
+            return redirect()->back()->withErrors([
+                'error' => 'Failed to delete console: ' . $th->getMessage()
+            ]);
         }
     }
 }

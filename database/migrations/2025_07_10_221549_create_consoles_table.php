@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('consoles', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('picture')->nullable();
             $table->string('status');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->timestamps();

@@ -17,10 +17,9 @@ class CollectionController extends Controller
 
     public function index()
     {
-        $consoles = Console::where('user_id', Auth::id())->get();
-        
+
         return Inertia::render('Collection', [
-            'consoles' => $consoles
+            'consoles' => Console::where('user_id', Auth::id())->get()
         ]);
     }
 
@@ -42,18 +41,19 @@ class CollectionController extends Controller
                 ]);
             });
         } catch (\Throwable $th) {
+
             Log::error('Failed to create console: ' . $th->getMessage(), [
                 'trace' => $th->getTraceAsString(),
                 'user_id' => Auth::id(),
                 'request_data' => $request->all()
             ]);
-            
+
             return redirect()->back()->withErrors([
                 'error' => 'Failed to create console: ' . $th->getMessage()
             ]);
         }
 
-         return Inertia::render('Collection', [
+        return Inertia::render('Collection', [
             'consoles' => Console::where('user_id', Auth::id())->get()
         ]);
     }

@@ -12,10 +12,6 @@ class mainController extends Controller
         return Inertia::render('Welcome');
     }
 
-    public function collection(){
-        return Inertia::render('Collection');
-    }
-
     public function friends(){
         return Inertia::render('Friends');
     }

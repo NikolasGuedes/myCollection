@@ -13,9 +13,6 @@ class Console extends Model
         'user_id',
     ];
 
-    /**
-     * Get the user that owns the console.
-     */
     public function user()
     {
         return $this->belongsTo(User::class);

@@ -452,7 +452,7 @@ const getConsoleImage = (consoleName: string): string | null => {
                         <Button type="submit"
                             class=" bg-[var(--primary)] text-white font-semibold py-3 rounded-lg cursor-pointer hover:bg-[var(--primary)]/90 transition-colors"
                             :disabled="isUpdating">
-                            {{ isUpdating ? 'SAVING...' : 'UPDATE STATUS' }}
+                            {{ isUpdating ? 'UPDATING...' : 'UPDATE STATUS' }}
                         </Button>
                     </DialogFooter>
                 </form>

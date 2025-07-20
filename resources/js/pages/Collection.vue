@@ -61,6 +61,8 @@ const isDialogOpen = ref(false);
 const isDialogOpenEdit = ref(false);
 const selectConsoleId = ref<number | null>(null);
 const search = ref(props.search);
+const isDeleting = ref(false);
+const isUpdating = ref(false);
 
 watch(() => props.search, (newSearch) => {
     search.value = newSearch;
@@ -133,11 +135,13 @@ const saveConsole = () => {
 };
 
 const editConsole = () => {
+    isUpdating.value = true;
     editForm.put(route('collection.update', selectConsoleId.value), {
         preserveState: true,
         onSuccess: () => {
             isDialogOpenEdit.value = false;
             editForm.reset();
+            isUpdating.value = false;
             toast.add({
                 severity: 'success',
                 detail: 'Console edit successfully.',
@@ -146,6 +150,7 @@ const editConsole = () => {
 
         },
         onError: () => {
+            isUpdating.value = false;
             toast.add({
                 severity: 'error',
                 detail: 'An error occurred while edit the console.',
@@ -156,11 +161,13 @@ const editConsole = () => {
 };
 
 const deleteConsole = () => {
+    isDeleting.value = true;
     editForm.delete(route('collection.destroy', selectConsoleId.value), {
         preserveState: true,
         onSuccess: () => {
             isDialogOpenEdit.value = false;
             editForm.reset();
+            isDeleting.value = false;
             toast.add({
                 severity: 'success',
                 detail: 'Console deleted successfully.',
@@ -169,6 +176,7 @@ const deleteConsole = () => {
 
         },
         onError: () => {
+            isDeleting.value = false;
             toast.add({
                 severity: 'error',
                 detail: 'An error occurred while deleted the console.',
@@ -438,13 +446,13 @@ const getConsoleImage = (consoleName: string): string | null => {
                     <DialogFooter>
                         <Button @click.prevent="deleteConsole"
                             class=" bg-[var(--destructive)] text-white font-semibold py-3 rounded-lg cursor-pointer hover:bg-[var(--destructive)]/90 transition-colors"
-                            :disabled="editForm.processing">
-                            {{ editForm.processing ? 'DELETING...' : 'DELETE CONSOLE' }}
+                            :disabled="isDeleting">
+                            {{ isDeleting ? 'DELETING...' : 'DELETE CONSOLE' }}
                         </Button>
                         <Button type="submit"
                             class=" bg-[var(--primary)] text-white font-semibold py-3 rounded-lg cursor-pointer hover:bg-[var(--primary)]/90 transition-colors"
-                            :disabled="editForm.processing">
-                            {{ editForm.processing ? 'SAVING...' : 'UPDATE STATUS' }}
+                            :disabled="isUpdating">
+                            {{ isUpdating ? 'SAVING...' : 'UPDATE STATUS' }}
                         </Button>
                     </DialogFooter>
                 </form>

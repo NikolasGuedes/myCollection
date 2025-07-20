@@ -39,7 +39,9 @@ const props = defineProps({
         type: Array as () => Array<{
             id: number;
             name: string;
-            status: string
+            status: string;
+            picture: string | null;
+            picture_url: string | null;
         }>,
         required: true,
     },
@@ -182,6 +184,13 @@ const submitSearch = (e: Event) => {
 };
 
 const getConsoleImage = (consoleName: string): string | null => {
+    // Primeiro, tentar encontrar no array de consoles do usuário
+    const userConsole = props.consoles.find(c => c.name === consoleName);
+    if (userConsole) {
+        return userConsole.picture_url || (userConsole.picture ? `/${userConsole.picture}` : null);
+    }
+    
+    // Se não encontrar, procurar no array de todos os consoles
     const consoleData = props.allConsoles.find(c => c.name === consoleName);
     if (consoleData) {
         return consoleData.picture_url || `/${consoleData.picture}`;

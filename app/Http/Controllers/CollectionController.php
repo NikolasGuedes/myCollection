@@ -31,14 +31,18 @@ class CollectionController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $allConsoles = AllConsole::all();
+        $allConsoles = AllConsole::whereNotIn('name', $consoles->pluck('name'))->get();
 
         return Inertia::render('Collection', [
             'consoles' => $consoles->map(function ($console) {
+                // Buscar informações de imagem do console correspondente
+                $allConsole = AllConsole::where('name', $console->name)->first();
                 return [
                     'id' => $console->id,
                     'name' => $console->name,
                     'status' => $console->status,
+                    'picture' => $allConsole ? $allConsole->picture : null,
+                    'picture_url' => $allConsole ? $allConsole->picture_url : null,
                 ];
             }),
             'allConsoles' => $allConsoles->map(function ($console) {
